@@ -10,9 +10,10 @@ struct ContentView: View {
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
 
     // Drag gesture state
-    @GestureState private var dragOffset: CGSize = .zero
+    @State private var dragLastTranslation: CGSize = .zero
+    @State private var dragRemainder: CGSize = .zero
 
-    private let dragThreshold: CGFloat = 20
+    private let dragStep: CGFloat = 32   // ~1 cell width in points
 
     var body: some View {
         ZStack {
@@ -162,15 +163,35 @@ struct ContentView: View {
     }
 
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: dragThreshold)
-            .onEnded { value in
-                let h = value.translation.width
-                let v = value.translation.height
-                if abs(h) > abs(v) {
-                    game.tryMove(dRow: 0, dCol: h > 0 ? 1 : -1)
-                } else {
-                    game.tryMove(dRow: v > 0 ? 1 : -1, dCol: 0)
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                guard game.phase == .playing else { return }
+
+                // Increment by the delta since last frame
+                let delta = CGSize(
+                    width: value.translation.width - dragLastTranslation.width,
+                    height: value.translation.height - dragLastTranslation.height
+                )
+                dragLastTranslation = value.translation
+                dragRemainder.width += delta.width
+                dragRemainder.height += delta.height
+
+                // Move one cell at a time in the dominant pending direction
+                while abs(dragRemainder.width) >= dragStep || abs(dragRemainder.height) >= dragStep {
+                    if abs(dragRemainder.width) >= abs(dragRemainder.height) {
+                        let dir = dragRemainder.width > 0 ? 1 : -1
+                        game.tryMove(dRow: 0, dCol: dir)
+                        dragRemainder.width -= CGFloat(dir) * dragStep
+                    } else {
+                        let dir = dragRemainder.height > 0 ? 1 : -1
+                        game.tryMove(dRow: dir, dCol: 0)
+                        dragRemainder.height -= CGFloat(dir) * dragStep
+                    }
                 }
+            }
+            .onEnded { _ in
+                dragLastTranslation = .zero
+                dragRemainder = .zero
             }
     }
 }
