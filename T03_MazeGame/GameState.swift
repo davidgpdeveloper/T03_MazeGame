@@ -7,6 +7,7 @@ import Foundation
 import Combine
 
 enum GamePhase {
+    case start
     case playing
     case fireworks
     case gameOver
@@ -44,7 +45,7 @@ class GameState: ObservableObject {
 
     init() {
         loadScores()
-        startLevel()
+        phase = .start
     }
 
     func startLevel() {
@@ -129,6 +130,12 @@ class GameState: ObservableObject {
     }
 
     func restartGame() {
+        currentLevel = 1
+        totalScore = 0
+        phase = .start
+    }
+
+    func beginGame() {
         currentLevel = 1
         totalScore = 0
         startLevel()

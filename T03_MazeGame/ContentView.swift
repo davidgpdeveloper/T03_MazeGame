@@ -30,6 +30,8 @@ struct ContentView: View {
     @ViewBuilder
     private var mainContent: some View {
         switch game.phase {
+        case .start:
+            StartView(topScores: game.topScores, onStart: { game.beginGame() })
         case .playing, .fireworks:
             gameView
         case .gameOver:
